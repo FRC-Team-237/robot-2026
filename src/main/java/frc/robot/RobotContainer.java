@@ -61,14 +61,11 @@ public class RobotContainer {
       hangerMotor.set(0);
     }));
 
-    // Note that X is defined as forward according to WPILib convention,
-    // and Y is defined as to the left according to WPILib convention.
     drivetrain.setDefaultCommand(
-        drivetrain.applyRequest(
-            () -> drive
-                .withVelocityX(-joystick.getLeftY() * MaxSpeed)
-                .withVelocityY(-joystick.getLeftX() * MaxSpeed)
-                .withRotationalRate(-joystick.getRightX() * MaxAngularRate)));
+        drivetrain.teleopDriveCommand(
+            () -> -joystick.getLeftY(),
+            () -> -joystick.getLeftX(),
+            () -> -joystick.getRightX()));
 
     final var idle = new SwerveRequest.Idle();
     RobotModeTriggers.disabled()
@@ -96,7 +93,6 @@ public class RobotContainer {
   }
 
   public Command getAutonomousCommand() {
-    // Simple drive forward auton
     return drivetrain.applyRequest(() -> new SwerveRequest.Idle());
   }
 }
