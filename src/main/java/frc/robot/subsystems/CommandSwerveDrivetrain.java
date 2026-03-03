@@ -14,6 +14,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
@@ -25,7 +26,6 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.generated.TunerConstants;
@@ -275,11 +275,25 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       .withRotationalDeadband(MaxAngularRate.times(0.1))
       .withDriveRequestType(DriveRequestType.Velocity);
 
+  private final double MAX_STICK_ACCEL = 4.0;
+  private final double MAX_STICK_DECEL = 20.0;
+  private SlewRateLimiter xLimiter = new SlewRateLimiter(MAX_STICK_ACCEL, -MAX_STICK_DECEL, 0.0);
+  private SlewRateLimiter yLimiter = new SlewRateLimiter(MAX_STICK_ACCEL, -MAX_STICK_DECEL, 0.0);
+
   public Command teleopDriveCommand(DoubleSupplier x, DoubleSupplier y, DoubleSupplier rotation) {
     return this.applyRequest(
-        () -> drive
-            .withVelocityX(MaxSpeed.times(x.getAsDouble()))
-            .withVelocityY(MaxSpeed.times(y.getAsDouble()))
-            .withRotationalRate(MaxAngularRate.times(rotation.getAsDouble())));
+        () -> {
+
+          var xVel = MaxSpeed.times(x.getAsDouble()).in(MetersPerSecond);
+          var xLimited = xLimiter.calculate(Math.abs(xVel));
+
+          var yVel = MaxSpeed.times(y.getAsDouble()).in(MetersPerSecond);
+          var yLimited = yLimiter.calculate(Math.abs(yVel));
+
+          return drive
+              .withVelocityX(Math.signum(xVel) * xLimited)
+              .withVelocityY(Math.signum(yVel) * yLimited)
+              .withRotationalRate(MaxAngularRate.times(rotation.getAsDouble()));
+        });
   }
 }
