@@ -9,16 +9,14 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 
 public class RobotContainer {
@@ -40,8 +38,7 @@ public class RobotContainer {
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
   ShooterSubsystem shooter = new ShooterSubsystem();
-
-  SparkMax hangerMotor = new SparkMax(41, MotorType.kBrushless);
+  HangerSubsystem hanger = new HangerSubsystem();
 
   public RobotContainer() {
     configureBindings();
@@ -49,17 +46,9 @@ public class RobotContainer {
 
   private void configureBindings() {
 
-    joystick.povUp().whileTrue(Commands.run(() -> {
-      hangerMotor.set(1);
-    }).finallyDo(() -> {
-      hangerMotor.set(0);
-    }));
+    joystick.povUp().whileTrue(hanger.hangerUpCommand);
 
-    joystick.povDown().whileTrue(Commands.run(() -> {
-      hangerMotor.set(-1);
-    }).finallyDo(() -> {
-      hangerMotor.set(0);
-    }));
+    joystick.povDown().whileTrue(hanger.hangerDownCommand);
 
     drivetrain.setDefaultCommand(
         drivetrain.teleopDriveCommand(
@@ -71,10 +60,9 @@ public class RobotContainer {
     RobotModeTriggers.disabled()
         .whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
-    joystick.a().whileTrue(shooter.floorPickupCommand);
-    joystick.b().whileTrue(shooter.hopperLoadCommand);
+    joystick.leftTrigger().whileTrue(shooter.intakeCommand);
     joystick.rightBumper().whileTrue(shooter.shootCommand);
-    joystick.rightTrigger().whileTrue(shooter.spoolShootCommand(0.5));
+    joystick.rightTrigger().whileTrue(shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()));
 
     // joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
     // joystick.b().whileTrue(drivetrain.applyRequest(() -> point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))));
