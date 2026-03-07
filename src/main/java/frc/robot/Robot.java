@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
 
 import edu.wpi.first.math.geometry.Rotation3d;
@@ -18,7 +19,8 @@ public class Robot extends TimedRobot {
 
   private final RobotContainer m_robotContainer;
 
-  private Vision visionLeft, visionRight;
+  private Vision visionLeft;
+  private Vision visionRight;
 
   public Robot() {
     m_robotContainer = new RobotContainer();
@@ -27,19 +29,25 @@ public class Robot extends TimedRobot {
         this.m_robotContainer.drivetrain::addVisionMeasurement,
         "Left",
         new Transform3d(
-            Inches.of(0),
-            Inches.of(0),
-            Inches.of(0),
-            Rotation3d.kZero));
+            Inches.of(10),
+            Inches.of(9),
+            Inches.of(10.5),
+            new Rotation3d(
+                Degrees.of(0),
+                Degrees.of(-30),
+                Degrees.of(45))));
 
     visionRight = new Vision(
         this.m_robotContainer.drivetrain::addVisionMeasurement,
         "Right",
         new Transform3d(
-            Inches.of(0),
-            Inches.of(0),
-            Inches.of(0),
-            Rotation3d.kZero));
+            Inches.of(10),
+            Inches.of(-9),
+            Inches.of(10.5),
+            new Rotation3d(
+                Degrees.of(0),
+                Degrees.of(-30),
+                Degrees.of(-45))));
   }
 
   @Override
