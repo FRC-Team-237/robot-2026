@@ -15,9 +15,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -39,7 +37,11 @@ public class ShooterSubsystem extends SubsystemBase {
   private static final Translation2d hubBluePos = new Translation2d(Inches.of(182.11), Inches.of(158.84));
   private static final Translation2d hubRedPos = new Translation2d(Inches.of(469.11), Inches.of(158.84));
 
-  public ShooterSubsystem() {
+  private CommandSwerveDrivetrain drivetrain;
+  private boolean shouldIntake = false;
+
+  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain) {
+    this.drivetrain = drivetrain;
     this.shooterFront.getConfigurator().apply(
         new Slot0Configs().withKV(0.1111111).withKP(0.02).withKA(0.01));
     this.shooterBack.getConfigurator().apply(
@@ -75,13 +77,9 @@ public class ShooterSubsystem extends SubsystemBase {
   });
 
   public Command intakeCommand = Commands.run(() -> {
-    frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 1);
-    bumperIntakeMotor.set(1);
-    hopperIntake.set(-HOPPER_SPEED);
+    shouldIntake = true;
   }).finallyDo(() -> {
-    frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 0);
-    bumperIntakeMotor.set(0);
-    hopperIntake.set(0);
+    shouldIntake = false;
   });
 
   public double backspinSpeed(double dist) {
@@ -94,5 +92,29 @@ public class ShooterSubsystem extends SubsystemBase {
     double m = 0.684583;
     double b = 49.47808;
     return m * (dist - 2) + b;
+  }
+
+  @Override
+  public void periodic() {
+    var robotPose = this.drivetrain.getState().Pose;
+    var robotXInches = Inches.convertFrom(robotPose.getX(), Meters);
+    var overrideShouldIntake = robotXInches > 182.11 && robotXInches < 469.11;
+    boolean newShouldIntake;
+    if (overrideShouldIntake) {
+      newShouldIntake = true;
+    } else {
+      newShouldIntake = shouldIntake;
+    }
+    SmartDashboard.putBoolean("shouldintake", newShouldIntake);
+
+    if (newShouldIntake) {
+      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 1);
+      bumperIntakeMotor.set(1);
+      hopperIntake.set(-HOPPER_SPEED);
+    } else {
+      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      bumperIntakeMotor.set(0);
+      hopperIntake.set(0);
+    }
   }
 }
