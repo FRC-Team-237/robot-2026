@@ -34,6 +34,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Robot;
 
 import java.util.List;
@@ -51,7 +52,7 @@ public class Vision {
   private final PhotonPoseEstimator photonEstimator;
   private Matrix<N3, N1> curStdDevs;
   private final EstimateConsumer estConsumer;
-  public static final AprilTagFieldLayout fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark);
+  public static final AprilTagFieldLayout fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
   public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(4, 4, 8);
   public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 1);
 
@@ -130,7 +131,6 @@ public class Vision {
     if (estimatedPose.isEmpty()) {
       // No pose input. Default to single-tag std devs
       curStdDevs = kSingleTagStdDevs;
-
     } else {
       // Pose present. Start running Heuristic
       var estStdDevs = kSingleTagStdDevs;
@@ -142,6 +142,11 @@ public class Vision {
         var tagPose = photonEstimator.getFieldTags().getTagPose(tgt.getFiducialId());
         if (tagPose.isEmpty())
           continue;
+
+        SmartDashboard.putNumber("Tag Ambiguity/" + tgt.fiducialId, tgt.getPoseAmbiguity());
+        if (tgt.getPoseAmbiguity() < 0.01)
+          continue;
+
         numTags++;
         avgDist += tagPose
             .get()
