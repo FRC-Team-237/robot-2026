@@ -17,13 +17,13 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
@@ -309,5 +309,43 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
               .withVelocityY(Math.signum(yVel) * yLimited)
               .withRotationalRate(MaxAngularRate.times(rotation.getAsDouble()));
         });
+  }
+
+  public Command aimZeldaCommand(DoubleSupplier x, DoubleSupplier y) {
+    return this.applyRequest(() -> {
+      var targetPos = new Translation2d(Inches.of(182.11), Inches.of(158.84));
+      var currentPos = this.getState().Pose.getTranslation();
+
+      var originAdjustedTarget = targetPos.minus(currentPos);
+      var targetAngle = originAdjustedTarget.getAngle();
+
+      SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
+
+      return new SwerveRequest.RobotCentricFacingAngle()
+          .withDriveRequestType(DriveRequestType.Velocity)
+          .withHeadingPID(3, 0, 0.1)
+          .withVelocityX(x.getAsDouble())
+          .withVelocityY(y.getAsDouble())
+          .withTargetDirection(targetAngle);
+    });
+  }
+
+  public Command aimFieldOrientedCommand(DoubleSupplier x, DoubleSupplier y) {
+    return this.applyRequest(() -> {
+      var targetPos = new Translation2d(Inches.of(182.11), Inches.of(158.84));
+      var currentPos = this.getState().Pose.getTranslation();
+
+      var originAdjustedTarget = targetPos.minus(currentPos);
+      var targetAngle = originAdjustedTarget.getAngle();
+
+      SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
+
+      return new SwerveRequest.FieldCentricFacingAngle()
+          .withDriveRequestType(DriveRequestType.Velocity)
+          .withHeadingPID(3, 0, 0.1)
+          .withVelocityX(x.getAsDouble())
+          .withVelocityY(y.getAsDouble())
+          .withTargetDirection(targetAngle);
+    });
   }
 }

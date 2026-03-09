@@ -4,15 +4,12 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
-
-import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -20,20 +17,14 @@ import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 
 public class RobotContainer {
-  private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-  private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond);
-
-  /* Setting up bindings for necessary control of the swerve drive platform */
-  private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-      .withDeadband(MetersPerSecond.of(0.025))
-      .withRotationalDeadband(MaxAngularRate * 0.1)
-      .withDriveRequestType(DriveRequestType.Velocity);
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
-
-  private final Telemetry logger = new Telemetry(MaxSpeed);
+  // private final Telemetry logger = new Telemetry(MaxSpeed);
 
   private final CommandXboxController joystick = new CommandXboxController(0);
+  // controller with overides and reverse buttons for intake
+  private final Joystick extra = new Joystick(1);
+  private final JoystickButton a = new JoystickButton(extra, 2);
+  private final JoystickButton b = new JoystickButton(extra, 3);
+  private final JoystickButton c = new JoystickButton(extra, 5);
 
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
@@ -45,6 +36,9 @@ public class RobotContainer {
   }
 
   private void configureBindings() {
+    a.whileTrue(shooter.reverseIntakeCommand);
+    b.whileTrue(shooter.reverseShootCommand);
+    c.whileTrue(shooter.stopIntakeCommand);
 
     joystick.povUp().whileTrue(hanger.hangerUpCommand);
 
@@ -75,9 +69,18 @@ public class RobotContainer {
     // joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
     // Reset the field-centric heading on left bumper press.
-    joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+    // joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
 
-    drivetrain.registerTelemetry(logger::telemeterize);
+    joystick.a().whileTrue(
+        drivetrain.aimZeldaCommand(
+            () -> -joystick.getLeftY(),
+            () -> -joystick.getLeftX()));
+    joystick.b().whileTrue(
+        drivetrain.aimFieldOrientedCommand(
+            () -> -joystick.getLeftY(),
+            () -> -joystick.getLeftX()));
+
+    // drivetrain.registerTelemetry(logger::telemeterize);
   }
 
   public Command getAutonomousCommand() {
