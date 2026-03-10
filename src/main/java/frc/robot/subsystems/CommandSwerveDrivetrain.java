@@ -36,6 +36,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.Positions;
 import frc.robot.generated.TunerConstants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
@@ -350,7 +351,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
   public Command aimZeldaCommand(DoubleSupplier x, DoubleSupplier y) {
     return this.applyRequest(() -> {
-      var targetPos = new Translation2d(Inches.of(182.11), Inches.of(158.84));
+      var targetPos = Positions.myHubPosition();
       var currentPos = this.getState().Pose.getTranslation();
 
       var originAdjustedTarget = targetPos.minus(currentPos);
@@ -369,7 +370,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
   public Command aimFieldOrientedCommand(DoubleSupplier x, DoubleSupplier y) {
     return this.applyRequest(() -> {
-      var targetPos = new Translation2d(Inches.of(182.11), Inches.of(158.84));
+      var targetPos = Positions.myHubPosition();
       var currentPos = this.getState().Pose.getTranslation();
 
       var originAdjustedTarget = targetPos.minus(currentPos);
