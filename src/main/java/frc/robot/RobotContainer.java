@@ -5,6 +5,9 @@
 package frc.robot;
 
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -79,6 +82,13 @@ public class RobotContainer {
         drivetrain.aimFieldOrientedCommand(
             () -> -joystick.getLeftY(),
             () -> -joystick.getLeftX()));
+
+    try {
+      var testPath = PathPlannerPath.fromPathFile("New New Path");
+      joystick.x().whileTrue(AutoBuilder.followPath(testPath));
+    } catch (Exception e) {
+      System.out.println("Failed to load path");
+    }
 
     // drivetrain.registerTelemetry(logger::telemeterize);
   }
