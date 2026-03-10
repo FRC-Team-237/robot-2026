@@ -22,6 +22,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Positions;
 
 public class ShooterSubsystem extends SubsystemBase {
   VictorSPX frontIntakeMotor = new VictorSPX(31);
@@ -35,8 +36,6 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private static final double FEEDER_DUTY_CYCLE = 1.0;
   private static final double HOPPER_SPEED = 0.25;
-  private static final Translation2d hubBluePos = new Translation2d(Inches.of(182.11), Inches.of(158.84));
-  private static final Translation2d hubRedPos = new Translation2d(Inches.of(469.11), Inches.of(158.84));
 
   private CommandSwerveDrivetrain drivetrain;
   private boolean shouldIntake = false;
@@ -63,9 +62,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command spoolShootCommand(Supplier<Translation2d> robotPosition) {
     return Commands.run(() -> {
       var latestPos = robotPosition.get();
-      var targetPos = DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Blue
-          ? hubBluePos
-          : hubRedPos;
+      var targetPos = Positions.myHubPosition();
       var distanceToTarget = Feet.convertFrom(latestPos.getDistance(targetPos), Meters);
 
       double targetSpeedFront = frontSpinSpeed(distanceToTarget);
@@ -79,7 +76,7 @@ public class ShooterSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("VoltageAdjustment", voltageAdjustmentRatio);
 
       this.shooterFront.setControl(velocityControl.withVelocity(targetSpeedFront * voltageAdjustmentRatio));
-      shooterBack.setControl(velocityControl.withVelocity(-targetSpeedBack * voltageAdjustmentRatio));
+      this.shooterBack.setControl(velocityControl.withVelocity(-targetSpeedBack * voltageAdjustmentRatio));
     }).finallyDo(() -> {
       shooterFront.set(0);
       shooterBack.set(0);
