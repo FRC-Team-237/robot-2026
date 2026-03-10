@@ -351,11 +351,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
   public Command aimZeldaCommand(DoubleSupplier x, DoubleSupplier y) {
     return this.applyRequest(() -> {
-      var targetPos = Positions.myHubPosition();
-      var currentPos = this.getState().Pose.getTranslation();
 
-      var originAdjustedTarget = targetPos.minus(currentPos);
-      var targetAngle = originAdjustedTarget.getAngle();
+      var currentPos = this.getState().Pose.getTranslation();
+      var targetAngle = Positions.angleToHub(currentPos);
 
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
@@ -370,11 +368,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
   public Command aimFieldOrientedCommand(DoubleSupplier x, DoubleSupplier y) {
     return this.applyRequest(() -> {
-      var targetPos = Positions.myHubPosition();
-      var currentPos = this.getState().Pose.getTranslation();
 
-      var originAdjustedTarget = targetPos.minus(currentPos);
-      var targetAngle = originAdjustedTarget.getAngle();
+      var currentPos = this.getState().Pose.getTranslation();
+      var targetAngle = Positions.angleToHub(currentPos);
 
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
