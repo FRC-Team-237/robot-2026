@@ -405,7 +405,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       var targetAngle = Positions.angleToHub(currentPos);
 
       var angleDelta = Math.abs(targetAngle.minus(angle).getDegrees());
-      var isCurrentlyAtTarget = angleDelta < 2.5;
+      var isCurrentlyAtTarget = angleDelta < 1.5;
 
       SmartDashboard.putNumber("AngleDelta", angleDelta);
 

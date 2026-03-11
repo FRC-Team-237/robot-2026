@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Positions;
 
 public class ShooterSubsystem extends SubsystemBase {
@@ -36,8 +37,31 @@ public class ShooterSubsystem extends SubsystemBase {
   private static final double HOPPER_SPEED = 0.5;
 
   private CommandSwerveDrivetrain drivetrain;
-  private boolean shouldIntake = false;
-  private boolean overOverideIntake = false;
+
+  private boolean inTheMiddleOfTheField = false;
+  private boolean holdingIntakeStopButton = false;
+  private boolean driverIntaking = false;
+
+  private Trigger intakeTrigger = new Trigger(() -> {
+    var robotPose = this.drivetrain.getState().Pose;
+    var robotXInches = Inches.convertFrom(robotPose.getX(), Meters);
+    inTheMiddleOfTheField = robotXInches > 182.11 && robotXInches < 469.11;
+
+    boolean shouldIntake = false;
+    if (inTheMiddleOfTheField) {
+      shouldIntake = true;
+    }
+
+    if (holdingIntakeStopButton) {
+      shouldIntake = false;
+    }
+
+    if (driverIntaking) {
+      shouldIntake = true;
+    }
+
+    return shouldIntake;
+  });
 
   public ShooterSubsystem(CommandSwerveDrivetrain drivetrain) {
     this.drivetrain = drivetrain;
@@ -53,9 +77,40 @@ public class ShooterSubsystem extends SubsystemBase {
 
     this.shooterFront.getConfigurator().apply(config);
     this.shooterBack.getConfigurator().apply(config);
+
+    intakeTrigger.whileTrue(Commands.run(() -> {
+      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 1);
+      bumperIntakeMotor.set(1.0);
+      hopperIntake.set(-HOPPER_SPEED);
+    }).finallyDo(() -> {
+      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      bumperIntakeMotor.set(0);
+      hopperIntake.set(0);
+    }));
   }
 
   final VelocityVoltage velocityControl = new VelocityVoltage(0).withEnableFOC(false);
+
+  private double backspinSpeed(double dist) {
+    double m = 2.42159;
+    double b = -2.20966;
+    return (m * (dist) + b);
+  }
+
+  private double frontSpinSpeed(double dist) {
+    double m = 1.93656;
+    double b = 47.73898;
+    return (m * (dist) + b);
+  }
+
+  private double voltageAjuster() {
+    double voltage = RobotController.getBatteryVoltage();
+    double center = 11.5;
+    double steepness = 8;
+    double maxBoost = 0.1;
+    double denominator = 1 + (Math.pow(Math.E, steepness * (voltage - center)));
+    return maxBoost / denominator + 1;
+  }
 
   public Command spoolShootCommand(Supplier<Translation2d> robotPosition) {
     return Commands.run(() -> {
@@ -99,22 +154,6 @@ public class ShooterSubsystem extends SubsystemBase {
     });
   }
 
-  public Command intakeCommand() {
-    return Commands.run(() -> {
-      shouldIntake = true;
-    }).finallyDo(() -> {
-      shouldIntake = false;
-    });
-  }
-
-  public Command stopIntakeCommand() {
-    return Commands.run(() -> {
-      overOverideIntake = true;
-    }).finallyDo(() -> {
-      overOverideIntake = false;
-    });
-  }
-
   public Command reverseIntakeCommand() {
     return Commands.run(() -> {
       frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, -1);
@@ -127,53 +166,19 @@ public class ShooterSubsystem extends SubsystemBase {
     });
   }
 
-  public double backspinSpeed(double dist) {
-    double m = 2.42159;
-    double b = -2.20966;
-    return (m * (dist) + b);
+  public Command driverIntakeCommand() {
+    return Commands.run(() -> {
+      driverIntaking = true;
+    }).finallyDo(() -> {
+      driverIntaking = false;
+    });
   }
 
-  public double frontSpinSpeed(double dist) {
-    double m = 1.93656;
-    double b = 47.73898;
-    return (m * (dist) + b);
-  }
-
-  public double voltageAjuster() {
-    double voltage = RobotController.getBatteryVoltage();
-    double center = 11.5;
-    double steepness = 8;
-    double maxBoost = 0.15;
-    double denominator = 1 + (Math.pow(Math.E, steepness * (voltage - center)));
-    return maxBoost / denominator + 1;
-
-  }
-
-  @Override
-  public void periodic() {
-    var robotPose = this.drivetrain.getState().Pose;
-    var robotXInches = Inches.convertFrom(robotPose.getX(), Meters);
-    boolean overrideShouldIntake;
-    overrideShouldIntake = robotXInches > 182.11 && robotXInches < 469.11;
-    if (overOverideIntake) {
-      overrideShouldIntake = false;
-    }
-    boolean newShouldIntake;
-
-    if (overrideShouldIntake) {
-      newShouldIntake = true;
-    } else {
-      newShouldIntake = shouldIntake;
-    }
-
-    if (newShouldIntake) {
-      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 1);
-      bumperIntakeMotor.set(1.0);
-      hopperIntake.set(-HOPPER_SPEED);
-    } else {
-      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 0);
-      bumperIntakeMotor.set(0);
-      hopperIntake.set(0);
-    }
+  public Command buttonOverrideIntakeCommand() {
+    return Commands.run(() -> {
+      holdingIntakeStopButton = true;
+    }).finallyDo(() -> {
+      holdingIntakeStopButton = false;
+    });
   }
 }

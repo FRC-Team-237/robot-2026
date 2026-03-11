@@ -5,6 +5,8 @@
 package frc.robot;
 
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Joystick;
@@ -13,7 +15,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.HangerSubsystem;
@@ -27,8 +28,8 @@ public class RobotContainer {
   private final Joystick extra = new Joystick(1);
   private final JoystickButton a = new JoystickButton(extra, 2);
   private final JoystickButton b = new JoystickButton(extra, 3);
-  private final JoystickButton c = new JoystickButton(extra, 5);
-  private final JoystickButton x = new JoystickButton(extra, 1);
+  private final JoystickButton c = new JoystickButton(extra, 8);
+  private final JoystickButton y = new JoystickButton(extra, 1);
 
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
@@ -43,8 +44,8 @@ public class RobotContainer {
   private void configureBindings() {
     a.whileTrue(shooter.reverseIntakeCommand());
     b.whileTrue(shooter.reverseShootCommand());
-    c.whileTrue(shooter.stopIntakeCommand());
-    x.whileTrue(drivetrain.aimFieldOrientedCommand(
+    c.whileTrue(shooter.buttonOverrideIntakeCommand());
+    y.whileTrue(drivetrain.aimFieldOrientedCommand(
         () -> -joystick.getLeftY(),
         () -> -joystick.getLeftX()));
 
@@ -62,19 +63,16 @@ public class RobotContainer {
     RobotModeTriggers.disabled()
         .whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
-    joystick.leftTrigger().whileTrue(shooter.intakeCommand());
-    joystick.rightBumper().whileTrue(shooter.shootCommand());
+    joystick.leftTrigger().whileTrue(shooter.driverIntakeCommand());
     joystick.rightTrigger().whileTrue(shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()));
-
-    // joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-    // joystick.b().whileTrue(drivetrain.applyRequest(() -> point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))));
+    joystick.rightBumper().whileTrue(shooter.shootCommand());
 
     // Run SysId routines when holding back/start and X/Y.
     // Note that each routine should be run exactly once in a single log.
-    joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-    joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-    joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-    joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+    // joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+    // joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
+    // joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
+    // joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
     // Reset the field-centric heading on left bumper press.
     // joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
@@ -90,15 +88,18 @@ public class RobotContainer {
 
     joystick.y().onTrue(Commands.parallel(
         shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
-        drivetrain.aim().andThen(
-            shooter.shootCommand())));
+        drivetrain.aim().andThen(shooter.shootCommand())));
 
-    // try {
-    // var testPath = PathPlannerPath.fromPathFile("New New Path");
-    // joystick.x().whileTrue(AutoBuilder.followPath(testPath));
-    // } catch (Exception e) {
-    // System.out.println("Failed to load path");
-    // }
+    try {
+      var testPath = PathPlannerPath.fromPathFile("New New Path");
+      joystick.x().whileTrue(AutoBuilder.followPath(testPath));
+      joystick.x().onTrue(
+          AutoBuilder.followPath(testPath).andThen(Commands.parallel(
+              shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+              drivetrain.aim().andThen(shooter.shootCommand()))));
+    } catch (Exception e) {
+      System.out.println("Failed to load path");
+    }
 
     // drivetrain.registerTelemetry(logger::telemeterize);
   }
