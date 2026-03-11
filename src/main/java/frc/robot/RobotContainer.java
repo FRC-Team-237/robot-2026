@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Seconds;
+
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.PathPlannerAuto;
@@ -11,6 +13,7 @@ import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -28,6 +31,7 @@ public class RobotContainer {
   private final JoystickButton a = new JoystickButton(extra, 2);
   private final JoystickButton b = new JoystickButton(extra, 3);
   private final JoystickButton c = new JoystickButton(extra, 5);
+  private final JoystickButton x = new JoystickButton(extra, 1);
 
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
@@ -42,6 +46,9 @@ public class RobotContainer {
     a.whileTrue(shooter.reverseIntakeCommand);
     b.whileTrue(shooter.reverseShootCommand);
     c.whileTrue(shooter.stopIntakeCommand);
+    x.whileTrue(drivetrain.aimFieldOrientedCommand(
+        () -> -joystick.getLeftY(),
+        () -> -joystick.getLeftX()));
 
     joystick.povUp().whileTrue(hanger.hangerUpCommand);
 
@@ -82,6 +89,11 @@ public class RobotContainer {
         drivetrain.aimFieldOrientedCommand(
             () -> -joystick.getLeftY(),
             () -> -joystick.getLeftX()));
+
+    joystick.y().onTrue(Commands.parallel(
+        shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+        drivetrain.aim().andThen(
+            shooter.shootCommand)));
 
     try {
       var testPath = PathPlannerPath.fromPathFile("New New Path");

@@ -18,6 +18,7 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -34,6 +35,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Positions;
@@ -380,6 +382,38 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
           .withVelocityX(x.getAsDouble())
           .withVelocityY(y.getAsDouble())
           .withTargetDirection(targetAngle);
+    });
+  }
+
+  Debouncer aimDebouncer = new Debouncer(0.35);
+
+  public Command aim() {
+    return this.applyRequest(() -> {
+
+      var currentPos = this.getState().Pose.getTranslation();
+      var targetAngle = Positions.angleToHub(currentPos);
+
+      SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
+
+      return new SwerveRequest.FieldCentricFacingAngle()
+          .withHeadingPID(3, 0, 0.1)
+          .withTargetDirection(targetAngle);
+    }).until(() -> {
+      var pose = this.getState().Pose;
+      var angle = pose.getRotation();
+      var currentPos = pose.getTranslation();
+      var targetAngle = Positions.angleToHub(currentPos);
+
+      var angleDelta = Math.abs(targetAngle.minus(angle).getDegrees());
+      var isCurrentlyAtTarget = angleDelta < 2.5;
+
+      SmartDashboard.putNumber("AngleDelta", angleDelta);
+
+      var debounced = aimDebouncer.calculate(isCurrentlyAtTarget);
+
+      SmartDashboard.putBoolean("AtTargetAngle", debounced);
+
+      return debounced;
     });
   }
 }
