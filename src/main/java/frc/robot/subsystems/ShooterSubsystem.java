@@ -81,41 +81,51 @@ public class ShooterSubsystem extends SubsystemBase {
     });
   }
 
-  public Command shootCommand = Commands.run(() -> {
-    shooterFeeder.set(-FEEDER_DUTY_CYCLE);
-    hopperIntake.set(-HOPPER_SPEED);
-  }).finallyDo(() -> {
-    shooterFeeder.set(0);
-    hopperIntake.set(0);
-  });
+  public Command shootCommand() {
+    return Commands.run(() -> {
+      shooterFeeder.set(-FEEDER_DUTY_CYCLE);
+      hopperIntake.set(-HOPPER_SPEED);
+    }).finallyDo(() -> {
+      shooterFeeder.set(0);
+      hopperIntake.set(0);
+    });
+  }
 
-  public Command reverseShootCommand = Commands.run(() -> {
-    shooterFeeder.set(FEEDER_DUTY_CYCLE);
-  }).finallyDo(() -> {
-    shooterFeeder.set(0);
-  });
+  public Command reverseShootCommand() {
+    return Commands.run(() -> {
+      shooterFeeder.set(FEEDER_DUTY_CYCLE);
+    }).finallyDo(() -> {
+      shooterFeeder.set(0);
+    });
+  }
 
-  public Command intakeCommand = Commands.run(() -> {
-    shouldIntake = true;
-  }).finallyDo(() -> {
-    shouldIntake = false;
-  });
+  public Command intakeCommand() {
+    return Commands.run(() -> {
+      shouldIntake = true;
+    }).finallyDo(() -> {
+      shouldIntake = false;
+    });
+  }
 
-  public Command stopIntakeCommand = Commands.run(() -> {
-    overOverideIntake = true;
-  }).finallyDo(() -> {
-    overOverideIntake = false;
-  });
+  public Command stopIntakeCommand() {
+    return Commands.run(() -> {
+      overOverideIntake = true;
+    }).finallyDo(() -> {
+      overOverideIntake = false;
+    });
+  }
 
-  public Command reverseIntakeCommand = Commands.run(() -> {
-    frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, -1);
-    bumperIntakeMotor.set(-1);
-    hopperIntake.set(HOPPER_SPEED);
-  }).finallyDo(() -> {
-    frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 0);
-    bumperIntakeMotor.set(0);
-    hopperIntake.set(0);
-  });
+  public Command reverseIntakeCommand() {
+    return Commands.run(() -> {
+      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, -1);
+      bumperIntakeMotor.set(-1);
+      hopperIntake.set(HOPPER_SPEED);
+    }).finallyDo(() -> {
+      frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      bumperIntakeMotor.set(0);
+      hopperIntake.set(0);
+    });
+  }
 
   public double backspinSpeed(double dist) {
     double m = 2.42159;
