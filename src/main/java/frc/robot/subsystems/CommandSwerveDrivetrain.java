@@ -396,7 +396,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
       return new SwerveRequest.FieldCentricFacingAngle()
-          .withHeadingPID(3, 0, 0.1)
+          .withHeadingPID(3, 0.0025, 0.1)
           .withTargetDirection(targetAngle);
     }).until(() -> {
       var pose = this.getState().Pose;

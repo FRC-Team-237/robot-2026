@@ -10,6 +10,8 @@ import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -33,12 +35,41 @@ public class RobotContainer {
 
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
+  private final SendableChooser<Command> autoChooser = new SendableChooser<>();
+
   ShooterSubsystem shooter = new ShooterSubsystem(drivetrain);
   HangerSubsystem hanger = new HangerSubsystem();
 
   public RobotContainer() {
     CameraServer.startAutomaticCapture(0);
     configureBindings();
+
+    try {
+      var path = PathPlannerPath.fromPathFile("Right Trench Grab Shoot");
+      autoChooser.addOption(
+          "Right Trench Grab Shoot",
+          AutoBuilder.followPath(path).andThen(Commands.parallel(
+              shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+              drivetrain.aim().andThen(shooter.shootCommand()))));
+    } catch (Exception e) {
+      System.out.println("Failed to load path(s)");
+    }
+
+    try {
+      var path = PathPlannerPath.fromPathFile("Right Bump Grab Shoot");
+      autoChooser.addOption(
+          "Right Bump Grab Shoot",
+          AutoBuilder.followPath(path).andThen(Commands.parallel(
+              shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+              drivetrain.aim().andThen(shooter.shootCommand()))));
+    } catch (Exception e) {
+      System.out.println("Failed to load path(s)");
+    }
+
+    autoChooser.addOption("Nothing", Commands.none());
+    autoChooser.setDefaultOption("Nothing", Commands.none());
+
+    SmartDashboard.putData(autoChooser);
   }
 
   private void configureBindings() {
@@ -90,21 +121,10 @@ public class RobotContainer {
         shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
         drivetrain.aim().andThen(shooter.shootCommand())));
 
-    try {
-      var testPath = PathPlannerPath.fromPathFile("New New Path");
-      joystick.x().whileTrue(AutoBuilder.followPath(testPath));
-      joystick.x().onTrue(
-          AutoBuilder.followPath(testPath).andThen(Commands.parallel(
-              shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
-              drivetrain.aim().andThen(shooter.shootCommand()))));
-    } catch (Exception e) {
-      System.out.println("Failed to load path");
-    }
-
     // drivetrain.registerTelemetry(logger::telemeterize);
   }
 
   public Command getAutonomousCommand() {
-    return drivetrain.applyRequest(() -> new SwerveRequest.Idle());
+    return autoChooser.getSelected();
   }
 }

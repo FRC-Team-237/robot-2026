@@ -107,7 +107,7 @@ public class ShooterSubsystem extends SubsystemBase {
     double voltage = RobotController.getBatteryVoltage();
     double center = 11.5;
     double steepness = 8;
-    double maxBoost = 0.1;
+    double maxBoost = 0.075;
     double denominator = 1 + (Math.pow(Math.E, steepness * (voltage - center)));
     return maxBoost / denominator + 1;
   }
