@@ -65,6 +65,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
   private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
   private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
+  private final AngularVelocity maxAutoRotationalRate = DegreesPerSecond.of(90);
+
   /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
   private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
       new SysIdRoutine.Config(
@@ -322,7 +324,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
   }
 
   public final LinearVelocity MaxSpeed = TunerConstants.kSpeedAt12Volts;
-  public final AngularVelocity MaxAngularRate = RotationsPerSecond.of(0.75);
+  public final AngularVelocity MaxAngularRate = RotationsPerSecond.of(0.5);
 
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(MetersPerSecond.of(0.025))
@@ -360,10 +362,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
       return new SwerveRequest.RobotCentricFacingAngle()
+          .withMaxAbsRotationalRate(this.maxAutoRotationalRate)
           .withDriveRequestType(DriveRequestType.Velocity)
           .withHeadingPID(3, 0, 0.1)
-          .withVelocityX(x.getAsDouble())
-          .withVelocityY(y.getAsDouble())
+          .withVelocityX(x.getAsDouble() * 1.3)
+          .withVelocityY(y.getAsDouble() * 1.3)
           .withTargetDirection(targetAngle);
     });
   }
@@ -377,15 +380,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
       return new SwerveRequest.FieldCentricFacingAngle()
+          .withMaxAbsRotationalRate(this.maxAutoRotationalRate)
           .withDriveRequestType(DriveRequestType.Velocity)
           .withHeadingPID(3, 0, 0.1)
-          .withVelocityX(x.getAsDouble())
-          .withVelocityY(y.getAsDouble())
+          .withVelocityX(x.getAsDouble() * 1.3)
+          .withVelocityY(y.getAsDouble() * 1.3)
           .withTargetDirection(targetAngle);
     });
   }
 
-  Debouncer aimDebouncer = new Debouncer(0.35);
+  Debouncer aimDebouncer = new Debouncer(0.5);
 
   public Command aim() {
     return this.applyRequest(() -> {
@@ -396,6 +400,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
       return new SwerveRequest.FieldCentricFacingAngle()
+          .withMaxAbsRotationalRate(this.maxAutoRotationalRate)
           .withHeadingPID(3, 0.0025, 0.1)
           .withTargetDirection(targetAngle);
     }).until(() -> {

@@ -181,4 +181,10 @@ public class ShooterSubsystem extends SubsystemBase {
       holdingIntakeStopButton = false;
     });
   }
+
+  public Command aimAndShoot() {
+    return Commands.parallel(
+        this.spoolShootCommand(() -> this.drivetrain.getState().Pose.getTranslation()),
+        this.drivetrain.aim().andThen(this.shootCommand()));
+  }
 }

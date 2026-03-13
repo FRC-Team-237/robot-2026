@@ -48,9 +48,12 @@ public class RobotContainer {
       var path = PathPlannerPath.fromPathFile("Right Trench Grab Shoot");
       autoChooser.addOption(
           "Right Trench Grab Shoot",
-          AutoBuilder.followPath(path).andThen(Commands.parallel(
-              shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
-              drivetrain.aim().andThen(shooter.shootCommand()))));
+          Commands.sequence(
+              Commands.deadline(Commands.waitSeconds(0.5), shooter.driverIntakeCommand()),
+              Commands.waitSeconds(0.5),
+              AutoBuilder.followPath(path).andThen(Commands.parallel(
+                  shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+                  drivetrain.aim().andThen(shooter.shootCommand())))));
     } catch (Exception e) {
       System.out.println("Failed to load path(s)");
     }
@@ -80,9 +83,9 @@ public class RobotContainer {
         () -> -joystick.getLeftY(),
         () -> -joystick.getLeftX()));
 
-    joystick.povUp().whileTrue(hanger.hangerUpCommand);
+    // joystick.povUp().whileTrue(hanger.hangerUpCommand);
 
-    joystick.povDown().whileTrue(hanger.hangerDownCommand);
+    // joystick.povDown().whileTrue(hanger.hangerDownCommand);
 
     drivetrain.setDefaultCommand(
         drivetrain.teleopDriveCommand(
@@ -108,18 +111,20 @@ public class RobotContainer {
     // Reset the field-centric heading on left bumper press.
     // joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
 
-    joystick.a().whileTrue(
-        drivetrain.aimZeldaCommand(
-            () -> -joystick.getLeftY(),
-            () -> -joystick.getLeftX()));
+    // joystick.a().whileTrue(
+    // drivetrain.aimZeldaCommand(
+    // () -> -joystick.getLeftY(),
+    // () -> -joystick.getLeftX()));
     joystick.b().whileTrue(
         drivetrain.aimFieldOrientedCommand(
             () -> -joystick.getLeftY(),
             () -> -joystick.getLeftX()));
 
-    joystick.y().onTrue(Commands.parallel(
-        shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
-        drivetrain.aim().andThen(shooter.shootCommand())));
+    // joystick.y().onTrue(Commands.parallel(
+    // shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+    // drivetrain.aim().andThen(shooter.shootCommand())));
+
+    joystick.y().toggleOnTrue(shooter.aimAndShoot());
 
     // drivetrain.registerTelemetry(logger::telemeterize);
   }
