@@ -74,7 +74,7 @@ public class RobotContainer {
     try {
       var path = PathPlannerPath.fromPathFile("Left Trench Grab Shoot");
       autoChooser.addOption(
-          "Right Trench Grab Shoot",
+          "Left Trench Grab Shoot",
           Commands.sequence(
               Commands.deadline(Commands.waitSeconds(0.35), shooter.driverIntakeCommand()),
               Commands.waitSeconds(0.35),
