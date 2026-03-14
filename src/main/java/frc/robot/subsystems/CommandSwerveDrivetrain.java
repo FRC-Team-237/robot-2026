@@ -409,6 +409,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       var currentPos = pose.getTranslation();
       var targetAngle = Positions.angleToHub(currentPos);
 
+      if (DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red) {
+        targetAngle = targetAngle.plus(Rotation2d.k180deg);
+      }
+
       var angleDelta = Math.abs(targetAngle.minus(angle).getDegrees());
       var isCurrentlyAtTarget = angleDelta < 1.5;
 
