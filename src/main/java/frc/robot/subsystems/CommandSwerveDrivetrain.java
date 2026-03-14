@@ -332,7 +332,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       .withDriveRequestType(DriveRequestType.Velocity);
 
   private final double MAX_STICK_ACCEL = 8.0;
-  private final double MAX_STICK_DECEL = 18.0;
+  private final double MAX_STICK_DECEL = 12.0;
   private SlewRateLimiter xLimiter = new SlewRateLimiter(MAX_STICK_ACCEL, -MAX_STICK_DECEL, 0.0);
   private SlewRateLimiter yLimiter = new SlewRateLimiter(MAX_STICK_ACCEL, -MAX_STICK_DECEL, 0.0);
 

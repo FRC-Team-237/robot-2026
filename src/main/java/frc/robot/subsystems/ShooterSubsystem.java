@@ -12,6 +12,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.geometry.Translation2d;
@@ -71,12 +72,28 @@ public class ShooterSubsystem extends SubsystemBase {
     config.CurrentLimits.SupplyCurrentLimit = 40.0;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
 
+    config.CurrentLimits.StatorCurrentLimit = 40.0;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+
     config.Slot0.kV = 0.1316;
     config.Slot0.kP = 0.02;
     config.Slot0.kA = 0.01;
 
     this.shooterFront.getConfigurator().apply(config);
     this.shooterBack.getConfigurator().apply(config);
+
+    var feederConfig = new TalonFXConfiguration();
+    feederConfig.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.5;
+    feederConfig.CurrentLimits.SupplyCurrentLimit = 40.0;
+    feederConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
+
+    feederConfig.CurrentLimits.StatorCurrentLimit = 40.0;
+    feederConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+
+    this.shooterFeeder.getConfigurator().apply(config);
+
+    var intakeConfig = new SparkMaxConfig();
+    intakeConfig.smartCurrentLimit(30, 30);
 
     intakeTrigger.whileTrue(Commands.run(() -> {
       frontIntakeMotor.set(VictorSPXControlMode.PercentOutput, 1);
