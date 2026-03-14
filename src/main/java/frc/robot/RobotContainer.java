@@ -66,7 +66,22 @@ public class RobotContainer {
           AutoBuilder.followPath(path).andThen(Commands.parallel(
               shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
               drivetrain.aim(),
-              Commands.waitSeconds(1).andThen(shooter.shootCommand()))));
+              Commands.waitSeconds(0.5).andThen(shooter.shootCommand()))));
+    } catch (Exception e) {
+      System.out.println("Failed to load path(s)");
+    }
+
+    try {
+      var path = PathPlannerPath.fromPathFile("Left Trench Grab Shoot");
+      autoChooser.addOption(
+          "Right Trench Grab Shoot",
+          Commands.sequence(
+              Commands.deadline(Commands.waitSeconds(0.35), shooter.driverIntakeCommand()),
+              Commands.waitSeconds(0.35),
+              AutoBuilder.followPath(path).andThen(Commands.parallel(
+                  shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+                  drivetrain.aim(),
+                  Commands.waitSeconds(0.5).andThen(shooter.shootCommand())))));
     } catch (Exception e) {
       System.out.println("Failed to load path(s)");
     }
