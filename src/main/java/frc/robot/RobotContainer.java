@@ -49,11 +49,12 @@ public class RobotContainer {
       autoChooser.addOption(
           "Right Trench Grab Shoot",
           Commands.sequence(
-              Commands.deadline(Commands.waitSeconds(0.5), shooter.driverIntakeCommand()),
-              Commands.waitSeconds(0.5),
+              Commands.deadline(Commands.waitSeconds(0.35), shooter.driverIntakeCommand()),
+              Commands.waitSeconds(0.35),
               AutoBuilder.followPath(path).andThen(Commands.parallel(
                   shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
-                  drivetrain.aim().andThen(shooter.shootCommand())))));
+                  drivetrain.aim(),
+                  Commands.waitSeconds(1).andThen(shooter.shootCommand())))));
     } catch (Exception e) {
       System.out.println("Failed to load path(s)");
     }
@@ -64,7 +65,8 @@ public class RobotContainer {
           "Right Bump Grab Shoot",
           AutoBuilder.followPath(path).andThen(Commands.parallel(
               shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
-              drivetrain.aim().andThen(shooter.shootCommand()))));
+              drivetrain.aim(),
+              Commands.waitSeconds(1).andThen(shooter.shootCommand()))));
     } catch (Exception e) {
       System.out.println("Failed to load path(s)");
     }

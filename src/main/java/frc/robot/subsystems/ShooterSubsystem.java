@@ -69,10 +69,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
     var config = new TalonFXConfiguration();
     config.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.5;
-    config.CurrentLimits.SupplyCurrentLimit = 40.0;
+    config.CurrentLimits.SupplyCurrentLimit = 100.0;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
 
-    config.CurrentLimits.StatorCurrentLimit = 40.0;
+    config.CurrentLimits.StatorCurrentLimit = 100.0;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
 
     config.Slot0.kV = 0.1316;
@@ -84,13 +84,16 @@ public class ShooterSubsystem extends SubsystemBase {
 
     var feederConfig = new TalonFXConfiguration();
     feederConfig.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.5;
-    feederConfig.CurrentLimits.SupplyCurrentLimit = 40.0;
+    feederConfig.CurrentLimits.SupplyCurrentLimit = 120.0;
     feederConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
-    feederConfig.CurrentLimits.StatorCurrentLimit = 40.0;
+    feederConfig.CurrentLimits.StatorCurrentLimit = 120.0;
     feederConfig.CurrentLimits.StatorCurrentLimitEnable = true;
 
-    this.shooterFeeder.getConfigurator().apply(config);
+    feederConfig.CurrentLimits.SupplyCurrentLowerLimit = 80.0;
+    feederConfig.CurrentLimits.SupplyCurrentLowerTime = 1.0;
+
+    this.shooterFeeder.getConfigurator().apply(feederConfig);
 
     var intakeConfig = new SparkMaxConfig();
     intakeConfig.smartCurrentLimit(30, 30);
