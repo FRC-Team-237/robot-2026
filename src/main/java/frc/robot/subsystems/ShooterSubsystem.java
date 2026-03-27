@@ -11,12 +11,14 @@ import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -34,8 +36,8 @@ public class ShooterSubsystem extends SubsystemBase {
   TalonFX shooterFeeder = new TalonFX(22);
   TalonFX shooterFront = new TalonFX(23);
 
-  private static final double FEEDER_DUTY_CYCLE = 1.0;
-  private static final double HOPPER_SPEED = 0.5;
+  private static final double FEEDER_DUTY_CYCLE = 1;
+  private static final double HOPPER_SPEED = 1.0;
 
   private CommandSwerveDrivetrain drivetrain;
 
@@ -93,6 +95,8 @@ public class ShooterSubsystem extends SubsystemBase {
     feederConfig.CurrentLimits.SupplyCurrentLowerLimit = 80.0;
     feederConfig.CurrentLimits.SupplyCurrentLowerTime = 1.0;
 
+    feederConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+
     this.shooterFeeder.getConfigurator().apply(feederConfig);
 
     var intakeConfig = new SparkMaxConfig();
@@ -114,13 +118,13 @@ public class ShooterSubsystem extends SubsystemBase {
   private double backspinSpeed(double dist) {
     double m = 2.42159;
     double b = -2.20966;
-    return (m * (dist) + b);
+    return (m * (dist) + b) * 1.2;
   }
 
   private double frontSpinSpeed(double dist) {
     double m = 1.93656;
     double b = 47.73898;
-    return (m * (dist) + b);
+    return (m * (dist) + b) * 1.1;
   }
 
   private double voltageAjuster() {
@@ -156,10 +160,38 @@ public class ShooterSubsystem extends SubsystemBase {
     });
   }
 
+  public Command setDistanceSpoolShootCommand() {
+    return Commands.run(() -> {
+      var targetSpeedFront = frontSpinSpeed(6);
+      var targetSpeedBack = backspinSpeed(6);
+
+      var voltageAdjustmentRatio = voltageAjuster();
+
+      SmartDashboard.putNumber("VoltageAdjustment", voltageAdjustmentRatio);
+
+      this.shooterFront.setControl(velocityControl.withVelocity(targetSpeedFront * voltageAdjustmentRatio));
+      this.shooterBack.setControl(velocityControl.withVelocity(-targetSpeedBack * voltageAdjustmentRatio));
+    }).finallyDo(() -> {
+      shooterFront.set(0);
+      shooterBack.set(0);
+    });
+  }
+
+  private double getHopperSpeed() {
+    var time = Timer.getFPGATimestamp();
+    var TIME_IN = 1.0;
+    var TIME_OUT = 0.25;
+
+    var t = time % (TIME_IN + TIME_OUT);
+    var sign = t < TIME_IN ? 1.0 : -1.0;
+
+    return HOPPER_SPEED * sign;
+  }
+
   public Command shootCommand() {
     return Commands.run(() -> {
       shooterFeeder.set(-FEEDER_DUTY_CYCLE);
-      hopperIntake.set(-HOPPER_SPEED);
+      hopperIntake.set(-getHopperSpeed());
     }).finallyDo(() -> {
       shooterFeeder.set(0);
       hopperIntake.set(0);
@@ -205,6 +237,8 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command aimAndShoot() {
     return Commands.parallel(
         this.spoolShootCommand(() -> this.drivetrain.getState().Pose.getTranslation()),
-        this.drivetrain.aim().andThen(this.shootCommand()));
+        Commands.parallel(
+            this.drivetrain.aim(),
+            Commands.waitSeconds(0.5)).andThen(this.shootCommand()));
   }
 }

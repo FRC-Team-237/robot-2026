@@ -32,6 +32,7 @@ public class RobotContainer {
   private final JoystickButton b = new JoystickButton(extra, 3);
   private final JoystickButton c = new JoystickButton(extra, 8);
   private final JoystickButton y = new JoystickButton(extra, 1);
+  private final JoystickButton lt = new JoystickButton(extra, 7);
 
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
@@ -86,6 +87,13 @@ public class RobotContainer {
       System.out.println("Failed to load path(s)");
     }
 
+    autoChooser.addOption(
+        "Just Shoot",
+        Commands.parallel(
+            shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+            drivetrain.aim(),
+            Commands.waitSeconds(0.5).andThen(shooter.shootCommand())));
+
     autoChooser.addOption("Nothing", Commands.none());
     autoChooser.setDefaultOption("Nothing", Commands.none());
 
@@ -99,6 +107,7 @@ public class RobotContainer {
     y.whileTrue(drivetrain.aimFieldOrientedCommand(
         () -> -joystick.getLeftY(),
         () -> -joystick.getLeftX()));
+    lt.whileTrue(shooter.setDistanceSpoolShootCommand());
 
     // joystick.povUp().whileTrue(hanger.hangerUpCommand);
 
