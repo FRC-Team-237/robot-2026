@@ -4,12 +4,21 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -87,6 +96,49 @@ public class RobotContainer {
       System.out.println("Failed to load path(s)");
     }
 
+    try {
+      var path = PathPlannerPath.fromPathFile("Home Depot");
+      autoChooser.addOption(
+          "Home Depot",
+          AutoBuilder.followPath(path));
+    } catch (Exception e) {
+      System.out.println("Failed to load path(s)");
+    }
+
+    try {
+      var path = PathPlannerPath.fromPathFile("Home Depot 2");
+      autoChooser.addOption(
+          "Home Depot 2",
+          drivetrain.applyRequest(() -> {
+            var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+            var direction = alliance == Alliance.Blue ? -1 : 1;
+            var angle = alliance == Alliance.Blue ? Degrees.of(30) : Degrees.of(150);
+
+            return new SwerveRequest.FieldCentricFacingAngle()
+                .withVelocityX(MetersPerSecond.of(direction))
+                .withDriveRequestType(DriveRequestType.Velocity)
+                .withHeadingPID(3, 0, 0.1)
+                .withMaxAbsRotationalRate(DegreesPerSecond.of(90))
+                .withTargetDirection(new Rotation2d(angle));
+          }).until(() -> {
+            var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+            var x = drivetrain.getState().Pose.getMeasureX().in(Inches);
+            var atTargetX = alliance == Alliance.Blue ? x < 86.1 : x > 565.11;
+
+            return atTargetX;
+          })
+              .andThen(
+                  Commands.deadline(
+                      AutoBuilder.followPath(path),
+                      shooter.driverIntakeCommand()).andThen(Commands.waitSeconds(0.5)).andThen(
+                          Commands.parallel(
+                              shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),
+                              drivetrain.aim(),
+                              Commands.waitSeconds(0.5).andThen(shooter.shootCommand())))));
+    } catch (Exception e) {
+      System.out.println("Failed to load path(s)");
+    }
+
     autoChooser.addOption(
         "Just Shoot",
         Commands.parallel(
@@ -145,6 +197,8 @@ public class RobotContainer {
         drivetrain.aimFieldOrientedCommand(
             () -> -joystick.getLeftY(),
             () -> -joystick.getLeftX()));
+
+    joystick.x().whileTrue(drivetrain.turtleModeCommand());
 
     // joystick.y().onTrue(Commands.parallel(
     // shooter.spoolShootCommand(() -> drivetrain.getState().Pose.getTranslation()),

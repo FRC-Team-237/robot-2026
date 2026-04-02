@@ -44,7 +44,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private boolean inTheMiddleOfTheField = false;
   private boolean holdingIntakeStopButton = false;
   private boolean driverIntaking = false;
-
+  private double DISTANCE_THRESHOLD = 5;
   private Trigger intakeTrigger = new Trigger(() -> {
     var robotPose = this.drivetrain.getState().Pose;
     var robotXInches = Inches.convertFrom(robotPose.getX(), Meters);
@@ -111,21 +111,60 @@ public class ShooterSubsystem extends SubsystemBase {
       bumperIntakeMotor.set(0);
       hopperIntake.set(0);
     }));
+
+    SmartDashboard.putNumber("FrontSpeed", 0);
+    SmartDashboard.putNumber("BackSpeed", 0);
   }
 
   final VelocityVoltage velocityControl = new VelocityVoltage(0).withEnableFOC(false);
 
   private double backspinSpeed(double dist) {
-    double m = 2.42159;
-    double b = -2.20966;
-    return (m * (dist) + b) * 1.2;
+    double m;
+    double b;
+    if (dist <= DISTANCE_THRESHOLD) {
+      m = 2.01358;
+      b = 3.57923;
+    } else {
+      m = 1.34024;
+      b = 35.66391;
+    }
+    return m * dist + b;
   }
 
   private double frontSpinSpeed(double dist) {
-    double m = 1.93656;
-    double b = 47.73898;
-    return (m * (dist) + b) * 1.1;
+    double m;
+    double b;
+    if (dist <= DISTANCE_THRESHOLD) {
+      m = 1.37966;
+      b = 59.0729;
+    } else {
+      m = 1.83487;
+      b = 27.69051;
+    }
+    return m * dist + b;
   }
+
+  // private double backspinSpeed(double dist) {
+  // // if (dist > 7.5) {
+  // // double m = 1.39241425;
+  // // double b = 7.724755125;
+  // // return m * dist + b;
+  // // }
+  // // double m = 2.2278628;
+  // // double b = 1.458891;
+  // // return m * dist + b;
+  // }
+
+  // private double frontSpinSpeed(double dist) {
+  // // if (dist > 7.5) {
+  // // double m = 1.113522;
+  // // double b = 63.2425628;
+  // // return m * dist + b;
+  // // }
+  // // double m = 1.29168552;
+  // // double b = 61.9063364;
+  // // return m * dist + b;
+  // }
 
   private double voltageAjuster() {
     double voltage = RobotController.getBatteryVoltage();
@@ -139,13 +178,17 @@ public class ShooterSubsystem extends SubsystemBase {
   public Command spoolShootCommand(Supplier<Translation2d> robotPosition) {
     return Commands.run(() -> {
       var latestPos = robotPosition.get();
-      var targetPos = Positions.myHubPosition();
+      var targetPos = Positions.myHubPosition(this.drivetrain.getState());
       var distanceToTarget = Feet.convertFrom(latestPos.getDistance(targetPos), Meters);
 
       double targetSpeedFront = frontSpinSpeed(distanceToTarget);
       double targetSpeedBack = backspinSpeed(distanceToTarget);
       SmartDashboard.putNumber("FrontSpeed", targetSpeedFront);
       SmartDashboard.putNumber("BackSpeed", targetSpeedBack);
+      SmartDashboard.putNumber("Distance", distanceToTarget);
+
+      // var targetSpeedFront = SmartDashboard.getNumber("FrontSpeed", 0);
+      // var targetSpeedBack = SmartDashboard.getNumber("BackSpeed", 0);
       SmartDashboard.putNumber("Distance", distanceToTarget);
 
       var voltageAdjustmentRatio = voltageAjuster();
@@ -239,6 +282,9 @@ public class ShooterSubsystem extends SubsystemBase {
         this.spoolShootCommand(() -> this.drivetrain.getState().Pose.getTranslation()),
         Commands.parallel(
             this.drivetrain.aim(),
-            Commands.waitSeconds(0.5)).andThen(this.shootCommand()));
+            Commands.waitSeconds(0.5)).andThen(
+                Commands.parallel(
+                    drivetrain.turtleModeCommand(),
+                    this.shootCommand())));
   }
 }

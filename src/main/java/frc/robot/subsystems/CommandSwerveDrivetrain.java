@@ -326,15 +326,21 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
   public final LinearVelocity MaxSpeed = TunerConstants.kSpeedAt12Volts;
   public final AngularVelocity MaxAngularRate = RotationsPerSecond.of(0.5);
 
-  private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
+  public final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(MetersPerSecond.of(0.025))
       .withRotationalDeadband(MaxAngularRate.times(0.1))
       .withDriveRequestType(DriveRequestType.Velocity);
+
+  private final SwerveRequest.SwerveDriveBrake turtleModeRequest = new SwerveRequest.SwerveDriveBrake();
 
   private final double MAX_STICK_ACCEL = 8.0;
   private final double MAX_STICK_DECEL = 12.0;
   private SlewRateLimiter xLimiter = new SlewRateLimiter(MAX_STICK_ACCEL, -MAX_STICK_DECEL, 0.0);
   private SlewRateLimiter yLimiter = new SlewRateLimiter(MAX_STICK_ACCEL, -MAX_STICK_DECEL, 0.0);
+
+  public Command turtleModeCommand() {
+    return this.applyRequest(() -> turtleModeRequest);
+  }
 
   public Command teleopDriveCommand(DoubleSupplier x, DoubleSupplier y, DoubleSupplier rotation) {
     return this.applyRequest(
@@ -346,9 +352,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
           var yVel = MaxSpeed.times(y.getAsDouble()).in(MetersPerSecond);
           var yLimited = yLimiter.calculate(Math.abs(yVel));
 
+          var vector = new Translation2d(Math.signum(xVel) * xLimited, Math.signum(yVel) * yLimited);
+
+          // if (vector.getNorm() <= 0.01 && Math.abs(rotation.getAsDouble()) <= 0.01) {
+          // return turtleModeRequest;
+          // }
+
           return drive
-              .withVelocityX(Math.signum(xVel) * xLimited)
-              .withVelocityY(Math.signum(yVel) * yLimited)
+              .withVelocityX(vector.getX())
+              .withVelocityY(vector.getY())
               .withRotationalRate(MaxAngularRate.times(rotation.getAsDouble()));
         });
   }
@@ -356,8 +368,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
   public Command aimZeldaCommand(DoubleSupplier x, DoubleSupplier y) {
     return this.applyRequest(() -> {
 
-      var currentPos = this.getState().Pose.getTranslation();
-      var targetAngle = Positions.angleToHub(currentPos);
+      var targetAngle = Positions.angleToHub(this.getState());
 
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
@@ -374,8 +385,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
   public Command aimFieldOrientedCommand(DoubleSupplier x, DoubleSupplier y) {
     return this.applyRequest(() -> {
 
-      var currentPos = this.getState().Pose.getTranslation();
-      var targetAngle = Positions.angleToHub(currentPos);
+      var targetAngle = Positions.angleToHub(this.getState());
 
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
@@ -394,8 +404,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
   public Command aim() {
     return this.applyRequest(() -> {
 
-      var currentPos = this.getState().Pose.getTranslation();
-      var targetAngle = Positions.angleToHub(currentPos);
+      var targetAngle = Positions.angleToHub(this.getState());
 
       SmartDashboard.putNumber("TargetAngle", targetAngle.getDegrees());
 
@@ -404,10 +413,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
           .withHeadingPID(3, 0.0025, 0.1)
           .withTargetDirection(targetAngle);
     }).until(() -> {
-      var pose = this.getState().Pose;
-      var angle = pose.getRotation();
-      var currentPos = pose.getTranslation();
-      var targetAngle = Positions.angleToHub(currentPos);
+      var state = this.getState();
+      var angle = state.Pose.getRotation();
+      var targetAngle = Positions.angleToHub(state);
 
       if (DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red) {
         targetAngle = targetAngle.plus(Rotation2d.k180deg);
